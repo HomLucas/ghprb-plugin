@@ -134,7 +134,7 @@ public class GhprbRootAction implements UnprotectedRootAction {
         PullRequest pr = null;
         PullRequest prReview = null;
         String repoName = null;
-        //LUCAS MAKE A NEW PR OBJECT TO DETECT, MORE ARGS WHEN PASSING DOWN
+
         try {
             GitHub gh = GitHub.connectAnonymously();
 
