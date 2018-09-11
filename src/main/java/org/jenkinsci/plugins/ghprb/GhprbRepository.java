@@ -390,10 +390,11 @@ public class GhprbRepository implements Saveable {
             doSave = true;
         } else if (!trigger.isActive()) {
             LOGGER.log(Level.FINE, "Not processing Pull request since the build is disabled");
-        } else if ("edited".equals(action) || "opened".equals(action) || "reopened".equals(action) || "synchronize".equals(action)) {
+        } else if ("edited".equals(action) || "assigned".equals(action) || "opened".equals(action)
+                || "reopened".equals(action) || "synchronize".equals(action)) {
+            pullRequests.remove(number);
             GhprbPullRequest pull = getPullRequest(ghpr, number);
             pull.check(ghpr, true);
-            pullRequests.remove(number);
             doSave = true;
         } else {
             LOGGER.log(Level.WARNING, "Unknown Pull Request hook action: {0}", action);
@@ -419,9 +420,9 @@ public class GhprbRepository implements Saveable {
         } else if (!trigger.isActive()) {
             LOGGER.log(Level.FINE, "Not processing Pull request since the build is disabled");
         } else if ("submitted".equals(action) || "edited".equals(action)) {
+            pullRequests.remove(number);
             GhprbPullRequest pull = getPullRequest(ghpr, number);
             pull.check(ghpr, true);
-            pullRequests.remove(number);
             doSave = true;
         } else {
             LOGGER.log(Level.WARNING, "Unknown Pull Request hook action: {0}", action);
