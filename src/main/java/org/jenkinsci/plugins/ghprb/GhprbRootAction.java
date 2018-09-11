@@ -132,6 +132,7 @@ public class GhprbRootAction implements UnprotectedRootAction {
 
         IssueComment comment = null;
         PullRequest pr = null;
+        PullRequest prReview = null;
         String repoName = null;
 
         try {
@@ -165,6 +166,13 @@ public class GhprbRootAction implements UnprotectedRootAction {
 
                 LOGGER.log(Level.INFO, "Checking PR #{1} for {0}", new Object[] {repoName, pr.getNumber()});
 
+            } else if (StringUtils.equalsIgnoreCase("pull_request_review", event)) {
+
+                prReview = getPullRequest(payload, gh);
+                repoName = prReview.getRepository().getFullName();
+
+                LOGGER.log(Level.INFO, "Checking PR #{1} for {0}", new Object[] {repoName, prReview.getNumber()});
+
             } else {
                 LOGGER.log(Level.WARNING, "Request not known for event: {0}", new Object[] {event});
                 return;
@@ -172,7 +180,7 @@ public class GhprbRootAction implements UnprotectedRootAction {
 
             Set<GhprbTrigger> triggers = getTriggers(repoName, body, signature);
 
-            handleEvent(triggers, payload, pr, comment);
+            handleEvent(triggers, payload, pr, prReview, comment);
 
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Unable to connect to GitHub anonymously", e);
@@ -186,6 +194,8 @@ public class GhprbRootAction implements UnprotectedRootAction {
 
         private PullRequest pr;
 
+        private PullRequest prReview;
+
         private IssueComment comment;
 
         @Override
@@ -193,6 +203,10 @@ public class GhprbRootAction implements UnprotectedRootAction {
             try {
                 if (pr != null) {
                     triggerPr(trigger, pr);
+                }
+
+                if (prReview != null) {
+                    triggerPrReview(trigger, prReview);
                 }
 
                 if (comment != null) {
@@ -209,6 +223,7 @@ public class GhprbRootAction implements UnprotectedRootAction {
     private void handleEvent(Set<GhprbTrigger> triggers,
                              String payload,
                              PullRequest anonPr,
+                             PullRequest prReview,
                              IssueComment anonComment) {
 
         for (final GhprbTrigger trigger : triggers) {
@@ -217,6 +232,9 @@ public class GhprbRootAction implements UnprotectedRootAction {
                 runner.trigger = trigger;
                 if (anonPr != null) {
                     runner.pr = getPullRequest(payload, trigger.getGitHub());
+                }
+                if (prReview != null) {
+                    runner.prReview = getPullRequest(payload, trigger.getGitHub());
                 }
                 if (anonComment != null) {
                     runner.comment = getIssueComment(payload, trigger.getGitHub());
@@ -255,6 +273,24 @@ public class GhprbRootAction implements UnprotectedRootAction {
             public void run() {
                 try {
                     trigger.handlePR(pr);
+                } catch (Throwable th) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("Unable to handle PR# ");
+                    sb.append(pr.getNumber());
+                    sb.append(" for repo: ");
+                    sb.append(pr.getRepository().getFullName());
+                    LOGGER.log(Level.SEVERE, sb.toString(), th);
+                }
+            }
+        }.start();
+    }
+
+    private void triggerPrReview(final GhprbTrigger trigger,
+                           final PullRequest pr) {
+        new Thread() {
+            public void run() {
+                try {
+                    trigger.handlePRReview(pr);
                 } catch (Throwable th) {
                     StringBuilder sb = new StringBuilder();
                     sb.append("Unable to handle PR# ");
