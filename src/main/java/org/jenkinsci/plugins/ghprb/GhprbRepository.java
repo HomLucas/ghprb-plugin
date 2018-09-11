@@ -393,6 +393,7 @@ public class GhprbRepository implements Saveable {
         } else if ("edited".equals(action) || "opened".equals(action) || "reopened".equals(action) || "synchronize".equals(action)) {
             GhprbPullRequest pull = getPullRequest(ghpr, number);
             pull.check(ghpr, true);
+            pullRequests.remove(number);
             doSave = true;
         } else {
             LOGGER.log(Level.WARNING, "Unknown Pull Request hook action: {0}", action);
@@ -420,6 +421,7 @@ public class GhprbRepository implements Saveable {
         } else if ("submitted".equals(action) || "edited".equals(action)) {
             GhprbPullRequest pull = getPullRequest(ghpr, number);
             pull.check(ghpr, true);
+            pullRequests.remove(number);
             doSave = true;
         } else {
             LOGGER.log(Level.WARNING, "Unknown Pull Request hook action: {0}", action);
