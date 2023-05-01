@@ -51,7 +51,8 @@ public class GhprbRepository implements Saveable {
 
     private static final transient Logger LOGGER = Logger.getLogger(GhprbRepository.class.getName());
 
-    private static final transient EnumSet<GHEvent> HOOK_EVENTS = EnumSet.of(GHEvent.ISSUE_COMMENT, GHEvent.PULL_REQUEST);
+    private static final transient EnumSet<GHEvent> HOOK_EVENTS = EnumSet.of(GHEvent.ISSUE_COMMENT, GHEvent.PULL_REQUEST,
+            GHEvent.PULL_REQUEST_REVIEW);
 
     private static final transient boolean INSECURE_WEBHOOKS = SystemProperties.getBoolean(
             GhprbRepository.class.getName() + ".webhook.insecure", false);
@@ -393,7 +394,37 @@ public class GhprbRepository implements Saveable {
             doSave = true;
         } else if (!trigger.isActive()) {
             LOGGER.log(Level.FINE, "Not processing Pull request since the build is disabled");
-        } else if ("edited".equals(action) || "opened".equals(action) || "reopened".equals(action) || "synchronize".equals(action)) {
+        } else if ("edited".equals(action) || "assigned".equals(action) || "opened".equals(action)
+                || "reopened".equals(action) || "synchronize".equals(action)) {
+            pullRequests.remove(number);
+            GhprbPullRequest pull = getPullRequest(ghpr, number);
+            pull.check(ghpr, true);
+            doSave = true;
+        } else {
+            LOGGER.log(Level.WARNING, "Unknown Pull Request hook action: {0}", action);
+        }
+        if (doSave) {
+            try {
+                this.save();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to save repository!", e);
+            }
+        }
+    }
+
+    void onPullRequestReviewHook(PullRequest pr) throws IOException {
+        GHPullRequest ghpr = pr.getPullRequest();
+        int number = pr.getNumber();
+        String action = pr.getAction();
+
+        boolean doSave = false;
+        if ("dismissed".equals(action)) {
+            pullRequests.remove(number);
+            doSave = true;
+        } else if (!trigger.isActive()) {
+            LOGGER.log(Level.FINE, "Not processing Pull request since the build is disabled");
+        } else if ("submitted".equals(action) || "edited".equals(action)) {
+            pullRequests.remove(number);
             GhprbPullRequest pull = getPullRequest(ghpr, number);
             pull.check(ghpr, true);
             doSave = true;

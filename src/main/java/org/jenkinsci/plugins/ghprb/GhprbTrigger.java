@@ -747,6 +747,14 @@ public class GhprbTrigger extends GhprbTriggerBackwardsCompatible {
         repo.onPullRequestHook(pr);
     }
 
+    public void handlePRReview(PullRequest pr) throws IOException {
+        GhprbRepository repo = getRepository();
+
+        LOGGER.log(Level.INFO, "Checking PR #{0} for job {1}", new Object[] {pr.getNumber(), getProjectName()});
+
+        repo.onPullRequestReviewHook(pr);
+    }
+
     public static final class DescriptorImpl extends TriggerDescriptor {
 
         // GitHub username may only contain alphanumeric characters or dashes and cannot begin with a dash
